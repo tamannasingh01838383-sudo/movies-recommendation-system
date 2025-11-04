@@ -73,4 +73,3 @@ with open(output, "rb") as file:
     similarity = pickle.load(file)
 
 
-
