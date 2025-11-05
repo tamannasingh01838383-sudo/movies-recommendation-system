@@ -2,21 +2,30 @@ import streamlit as st
 import pickle
 import pandas as pd
 import requests
+import streamlit as st
 
 
+
+API_KEY = "e4b1e7d793db788defbcadb22224ccd6"
+session = requests.Session()
+
+@st.cache_data(show_spinner=False)
 def fetch_poster(movie_id):
-    try:
-        url = f"https://api.themoviedb.org/3/movie/{movie_id}?api_key=e4b1e7d793db788defbcadb22224ccd6&language=en-US"
-        response = requests.get(url, timeout=5)
-        response.raise_for_status()
-        data = response.json()
-        if 'poster_path' in data and data['poster_path']:
-            return "https://image.tmdb.org/t/p/w500/" + data['poster_path']
-        else:
-            return "https://via.placeholder.com/500x750?text=No+Image"
-    except Exception as e:
-        print(f"Error fetching poster for movie_id={movie_id}: {e}")
-        return "https://via.placeholder.com/500x750?text=No+Image"
+        try:
+            url = f"https://api.themoviedb.org/3/movie/{movie_id}?api_key=e4b1e7d793db788defbcadb22224ccd6&language=en-US"
+            response = session.get(url, timeout=5)
+            response.raise_for_status()
+            data = response.json()
+            poster_path = data.get("poster_path")
+
+            if poster_path:
+                return f"https://image.tmdb.org/t/p/w500{poster_path}"
+            else:
+                # fallback if poster_path is missing
+                return "https://via.placeholder.com/300x450?text=No+Poster"
+        except Exception as e:
+            print(f"Error fetching poster for movie_id={movie_id}: {e}")
+            return "https://via.placeholder.com/300x450?text=Error"
 
 
 def recommend(movie):
@@ -40,7 +49,25 @@ def recommend(movie):
 movies_dict =pickle.load(open('movie_dict.pkl','rb'))
 movies = pd.DataFrame(movies_dict)
 
-similarity = pickle.load(open('similarity.pkl','rb'))
+import gdown
+import pickle
+import os
+
+# File ID from your Google Drive link
+file_id = "1pPpFWlP45oETFjzoDIGaZjsblY2LwrCp"
+url = f"https://drive.google.com/uc?id=1pPpFWlP45oETFjzoDIGaZjsblY2LwrCp"
+output = "similarity.pkl"
+
+# Download only if it doesn't already exist
+if not os.path.exists(output):
+    print("Downloading similarity.pkl from Google Drive...")
+    gdown.download(url, output, quiet=False)
+
+# Now load the file
+with open(output, "rb") as f:
+    similarity = pickle.load(f)
+
+print("similarity.pkl loaded successfully!")
 st.title('🎬 Movie Recommender System')
 
 selected_movie_name = st.selectbox(
@@ -61,15 +88,7 @@ if st.button('Recommend', key='recommend_button'):
         st.warning("No similar movies found. Try another title!")
 
 
-import pickle
-import gdown
 
-# Replace with your own Google Drive file ID
-url = "https://drive.google.com/uc?export=download&id=1pPpFWlP45oETFjzoDIGaZjsblY2LwrCp"
-output = "similarity.pkl"
-gdown.download(url, output, quiet=False)
 
-with open(output, "rb") as file:
-    similarity = pickle.load(file)
 
 
